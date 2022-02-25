@@ -12,7 +12,87 @@ Keys = {
 local QBCore = exports['qb-core']:GetCoreObject()
 
 ---functions---
+local  function DrawText3Ds(x, y, z, text)
+	SetTextScale(0.35, 0.35)
+    SetTextFont(4)
+    SetTextProportional(1)
+    SetTextColour(255, 255, 255, 215)
+    SetTextEntry("STRING")
+    SetTextCentre(true)
+    AddTextComponentString(text)
+    SetDrawOrigin(x,y,z, 0)
+    DrawText(0.0, 0.0)
+    local factor = (string.len(text)) / 370
+    DrawRect(0.0, 0.0+0.0125, 0.017+ factor, 0.03, 0, 0, 0, 75)
+    ClearDrawOrigin()
+end
+--[[RegisterNetEvent('qb-radialmenu:client:givecashtoplayer')
+AddEventHandler('qb-radialmenu:client:givecashtoplayer', function(data)
+   
 
+  
+end)]]
+local function checkStatusMenu(company)
+    QBCore.Functions.TriggerCallback('moneyLaundering:server:checkStatus', function(result)
+        if result then
+            local dialog = exports['qb-input']:ShowInput({
+                header = '🧼 "Прачечная"',
+                submitText = "Загрузить грязные деньги",
+                inputs = {
+                {
+                        text = "Сумма ($)", -- text you want to be displayed as a place holder
+                        name = "cash", -- name of the input should be unique otherwise it might override
+                        type = "number", -- type of the input - number will not allow non-number characters in the field so only accepts 0-9
+                        isRequired = false -- Optional [accepted values: true | false] but will submit the form if no value is inputted
+                    },
+                },
+            })
+            if dialog ~= nil then
+                TriggerServerEvent('moneyLaundering:server:loadMoney', company, dialog.cash)
+            end
+        else
+            QBCore.Functions.Notify('Вы не можете запустить отмыв, так как не завершен предыдущий процесс', "error")
+        end
+    end, company)
+end
 ---events---
 
 ---threads---
+Citizen.CreateThread(function()
+    while not LocalPlayer.state['isLoggedIn'] do
+        Wait(5000)
+    end
+    while true do
+        local sleep = 1500
+        local pos = GetEntityCoords(PlayerPedId())
+        --print(json.encode(Config.Places))
+        for i, v in pairs(Config.Places) do 
+            local coordMarker = v.coords 
+            local dist_to_marker = #(pos-coordMarker)
+            local jobName = QBCore.Functions.GetPlayerData().job.name
+            if dist_to_marker > 1.5 and dist_to_marker <= 5.0 and jobName == v.job then
+                sleep = 0
+                DrawText3Ds(coordMarker.x, coordMarker.y, coordMarker.z, '~g~"Прачечная"')
+                break
+            elseif dist_to_marker <= 1.5 then
+                sleep = 0
+                DrawText3Ds(coordMarker.x, coordMarker.y, coordMarker.z, '~g~[E] ~w~ для взаимодействия')
+                if IsControlJustPressed(0, Keys["E"]) then
+                    
+                    if QBCore.Functions.GetPlayerData().job.isboss then
+                        checkStatusMenu(jobName)
+                
+                    else
+                        QBCore.Functions.Notify('У вас нет доступа к этой функции, обратитесь к лидеру', "error")
+                    end
+                end
+                break
+            else
+                --sleep = 1500
+            end
+        end
+        
+        Citizen.Wait(sleep) 
+    end
+    
+end)
